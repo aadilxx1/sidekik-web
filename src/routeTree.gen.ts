@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CaptureSidRouteImport } from './routes/capture.$sid'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
+import { Route as TutorSidRouteImport } from './routes/tutor.$sid'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,44 @@ const SandboxErpRoute = SandboxErpRouteImport.update({
   path: '/sandbox/erp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TutorSidRoute = TutorSidRouteImport.update({
+  id: '/tutor/$sid',
+  path: '/tutor/$sid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/sandbox/erp': typeof SandboxErpRoute
+  '/tutor/$sid': typeof TutorSidRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/sandbox/erp': typeof SandboxErpRoute
+  '/tutor/$sid': typeof TutorSidRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/sandbox/erp': typeof SandboxErpRoute
+  '/tutor/$sid': typeof TutorSidRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/capture/$sid' | '/sandbox/erp'
+  fullPaths: '/' | '/capture/$sid' | '/sandbox/erp' | '/tutor/$sid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/capture/$sid' | '/sandbox/erp'
-  id: '__root__' | '/' | '/capture/$sid' | '/sandbox/erp'
+  to: '/' | '/capture/$sid' | '/sandbox/erp' | '/tutor/$sid'
+  id: '__root__' | '/' | '/capture/$sid' | '/sandbox/erp' | '/tutor/$sid'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CaptureSidRoute: typeof CaptureSidRoute
   SandboxErpRoute: typeof SandboxErpRoute
+  TutorSidRoute: typeof TutorSidRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SandboxErpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tutor/$sid': {
+      id: '/tutor/$sid'
+      path: '/tutor/$sid'
+      fullPath: '/tutor/$sid'
+      preLoaderRoute: typeof TutorSidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CaptureSidRoute: CaptureSidRoute,
   SandboxErpRoute: SandboxErpRoute,
+  TutorSidRoute: TutorSidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
