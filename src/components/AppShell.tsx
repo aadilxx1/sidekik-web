@@ -4,6 +4,7 @@ const navItems = [
   { label: "Home", to: "/" },
   { label: "MiniERP", to: "/sandbox/erp" },
   { label: "Capture (demo)", to: "/capture/$sid", params: { sid: "demo" } },
+  { label: "Tutor (demo)", to: "/tutor/$sid", params: { sid: "demo" } },
 ] as const;
 
 function AppSidebar() {
