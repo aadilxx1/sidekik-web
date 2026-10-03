@@ -1,6 +1,9 @@
 import { Link, Outlet } from "@tanstack/react-router";
 
-const navItems = [{ label: "Home", to: "/" }] as const;
+const navItems = [
+  { label: "Home", to: "/" },
+  { label: "MiniERP", to: "/sandbox/erp" },
+] as const;
 
 function AppSidebar() {
   return (
