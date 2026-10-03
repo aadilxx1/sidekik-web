@@ -3,7 +3,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 const navItems = [
   { label: "Home", to: "/" },
   { label: "MiniERP", to: "/sandbox/erp" },
-  { label: "Capture (demo)", to: "/capture/demo" },
+  { label: "Capture (demo)", to: "/capture/$sid", params: { sid: "demo" } },
 ] as const;
 
 function AppSidebar() {
@@ -23,6 +23,7 @@ function AppSidebar() {
           <Link
             key={item.to}
             to={item.to}
+            params={"params" in item ? item.params : undefined}
             activeProps={{ className: "bg-sidebar-accent text-sidebar-accent-foreground font-medium" }}
             className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
