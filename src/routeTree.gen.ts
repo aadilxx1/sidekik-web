@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CaptureSidRouteImport } from './routes/capture.$sid'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CaptureSidRoute = CaptureSidRouteImport.update({
+  id: '/capture/$sid',
+  path: '/capture/$sid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SandboxErpRoute = SandboxErpRouteImport.update({
@@ -25,27 +31,31 @@ const SandboxErpRoute = SandboxErpRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/capture/$sid': typeof CaptureSidRoute
   '/sandbox/erp': typeof SandboxErpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/capture/$sid': typeof CaptureSidRoute
   '/sandbox/erp': typeof SandboxErpRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/capture/$sid': typeof CaptureSidRoute
   '/sandbox/erp': typeof SandboxErpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sandbox/erp'
+  fullPaths: '/' | '/capture/$sid' | '/sandbox/erp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sandbox/erp'
-  id: '__root__' | '/' | '/sandbox/erp'
+  to: '/' | '/capture/$sid' | '/sandbox/erp'
+  id: '__root__' | '/' | '/capture/$sid' | '/sandbox/erp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CaptureSidRoute: typeof CaptureSidRoute
   SandboxErpRoute: typeof SandboxErpRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capture/$sid': {
+      id: '/capture/$sid'
+      path: '/capture/$sid'
+      fullPath: '/capture/$sid'
+      preLoaderRoute: typeof CaptureSidRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sandbox/erp': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CaptureSidRoute: CaptureSidRoute,
   SandboxErpRoute: SandboxErpRoute,
 }
 export const routeTree = rootRouteImport
