@@ -25,8 +25,8 @@ const clone = (): Invoice[] => JSON.parse(JSON.stringify(seed));
 
 function ErpPage() {
   const [invoices, setInvoices] = useState<Invoice[]>(clone);
-  const [selectedId, setSelectedId] = useState(invoices[0].invoice_id);
-  const [draft, setDraft] = useState<Invoice>(invoices[0]);
+  const [selectedId, setSelectedId] = useState(invoices[0]!.invoice_id);
+  const [draft, setDraft] = useState<Invoice>(invoices[0]!);
   const [banner, setBanner] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -55,7 +55,7 @@ function ErpPage() {
       } else if (d.type === "reset_case") {
         const fresh = clone();
         setInvoices(fresh);
-        const cur = fresh.find((i) => i.invoice_id === draftRef.current.invoice_id) ?? fresh[0];
+        const cur = fresh.find((i) => i.invoice_id === draftRef.current.invoice_id) ?? fresh[0]!;
         setSelectedId(cur.invoice_id);
         setDraft({ ...cur });
         setBanner(null);
