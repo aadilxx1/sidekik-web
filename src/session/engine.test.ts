@@ -276,6 +276,73 @@ describe("SessionEngine", () => {
     expect(t.current().muted).toEqual([true, false]);
   });
 
+  it("finishes a tutor session: ends at the gateway, waits for the summary, then hangs up", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup({ kind: "tutor" });
+      await t.engine.consent();
+      await t.engine.finish();
+      expect(t.gateway.end).toHaveBeenCalledTimes(1);
+      expect(t.engine.getState().stage).toBe("finishing");
+      const mastery = {
+        session_id: "sess-1",
+        workmap_id: "w1",
+        learner_id: "l1",
+        steps: [],
+        practice_next: [],
+        counts: {
+          independent_correct: 1,
+          prompted_correct: 0,
+          corrected_after_intervention: 1,
+          not_attempted: 0,
+        },
+      };
+      await t.command({ type: "summary", mastery });
+      expect(t.engine.getState().mastery).toEqual(mastery);
+      expect(t.current().userMessages.at(-1)).toMatch(/^\[SIDEKIK\] SUMMARY: 1 of 2 steps/);
+      await vi.advanceTimersByTimeAsync(24_000);
+      expect(t.current().ended).toBe(false);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(t.current().ended).toBe(true);
+      expect(t.engine.getState().stage).toBe("ended");
+      expect(t.gateway.end).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("hangs up after the wait when no summary comes", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup({ kind: "tutor" });
+      await t.engine.consent();
+      await t.engine.finish(1_000);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(t.engine.getState().stage).toBe("ended");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends a typed answer to the agent and the gateway, and clears the prediction", async () => {
+    const t = setup({ kind: "tutor" });
+    await t.engine.consent();
+    await t.command({
+      type: "predict",
+      step_id: "s4",
+      prompt: "Which cost center would Sabine use?",
+    });
+    expect(t.engine.getState().prediction?.step_id).toBe("s4");
+    t.engine.say("0400, because it's equipment over 5,000 euros");
+    expect(t.current().userMessages.at(-1)).toBe("0400, because it's equipment over 5,000 euros");
+    expect(t.sent.at(-1)).toMatchObject({
+      type: "turn",
+      role: "user",
+      text: "0400, because it's equipment over 5,000 euros",
+    });
+    expect(t.engine.getState().prediction).toBeNull();
+  });
+
   it("ends everything once", async () => {
     const t = setup();
     await t.engine.consent();

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { useTutorSession, type StepOutcome } from "@/hooks/useTutorSession";
 import { ReplayModal } from "@/components/ReplayModal";
 
@@ -26,26 +27,37 @@ const OUTCOME: Record<StepOutcome, { label: string; cls: string }> = {
 
 function TutorRoom() {
   const { sid } = Route.useParams();
-  const t = useTutorSession(sid);
+  const erpWindow = useRef<Window | null>(null);
+  // intervene commands and the highlight_field tool point the MiniERP at a field.
+  const t = useTutorSession(sid, {
+    onHighlightField: (field) =>
+      erpWindow.current?.postMessage({ type: "highlight_field", field }, window.location.origin),
+  });
+  const capture = useScreenCapture({
+    sid,
+    skToken: t.skToken,
+    ingestUrl: t.ingestUrl,
+    paused: t.offRecord,
+    tZeroMs: t.tZeroMs,
+  });
+  const sharing = capture.sharing;
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [sharing, setSharing] = useState(false);
-  const [replay, setReplay] = useState(false);
   const [prediction, setPrediction] = useState("");
 
-  const shareScreen = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 5 } });
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      setSharing(true);
-      stream.getVideoTracks()[0]?.addEventListener("ended", () => setSharing(false));
-      if (t.phase === "idle") t.start();
-    } catch {
-      /* cancelled */
-    }
-  };
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.srcObject = capture.stream;
+  }, [capture.stream]);
 
-  const openErp = () =>
-    window.open(`/sandbox/erp?sid=${encodeURIComponent(sid)}&mode=tutor`, "sidekik-minierp", "width=1280,height=800");
+  const shareScreen = () => void capture.start();
+
+  // A named second window keeps `window.opener` pointing here, so MiniERP events reach this room.
+  const openErp = () => {
+    erpWindow.current = window.open(
+      `/sandbox/erp?sid=${encodeURIComponent(sid)}&mode=tutor`,
+      "sidekik-minierp",
+      "width=1280,height=800",
+    );
+  };
 
   return (
     <div className="flex h-full">
@@ -68,14 +80,28 @@ function TutorRoom() {
       </section>
 
       <aside className="flex w-80 shrink-0 flex-col gap-4 overflow-auto border-l border-border p-4">
+        {t.found === false && (
+          <p role="alert" className="rounded-md border border-destructive p-2 text-sm text-destructive">
+            This session can't be resumed in this tab. Start a new practice from Home.
+          </p>
+        )}
+        {t.error && (
+          <p role="alert" className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+            {t.error}
+          </p>
+        )}
+
         {t.intervention && (
           <div role="alert" className="rounded-lg bg-destructive p-3 text-destructive-foreground">
             <p className="text-xs font-semibold uppercase tracking-wide">Hold on</p>
             <p className="mt-1 text-sm">“{t.intervention.quote}”</p>
-            <p className="mt-1 text-xs opacity-80">— Sabine</p>
+            <p className="mt-1 text-xs opacity-80">— {t.expertName}</p>
             <div className="mt-3 flex gap-2">
-              <button onClick={() => setReplay(true)} className="rounded-md bg-background px-3 py-1.5 text-xs font-semibold text-foreground">
-                Replay Sabine's moment
+              <button
+                onClick={() => t.intervention && t.openReplay(t.intervention.step_id)}
+                className="rounded-md bg-background px-3 py-1.5 text-xs font-semibold text-foreground"
+              >
+                Replay {t.expertName}'s moment
               </button>
               <button onClick={t.dismissIntervention} className="rounded-md px-3 py-1.5 text-xs underline">Got it</button>
             </div>
@@ -84,7 +110,7 @@ function TutorRoom() {
 
         {t.currentStep && t.phase !== "done" && (
           <div className="rounded-lg border border-border p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What Sabine does here</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What {t.expertName} does here</p>
             <p className="mt-1 font-medium">{t.currentStep.title}</p>
             <p className="mt-1 text-sm italic text-muted-foreground">“{t.currentStep.expertWords}”</p>
           </div>
@@ -110,7 +136,25 @@ function TutorRoom() {
           </div>
         )}
 
-        {t.phase === "idle" && <p className="text-sm text-muted-foreground">Share your screen to start practicing.</p>}
+        {t.phase === "idle" && t.found && (
+          <div className="rounded-lg border border-border p-3">
+            <p className="font-medium">Ready to practice?</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sidekik listens to you and watches your shared screen while you work, and coaches you in{" "}
+              {t.expertName}'s words. Nothing is stored about you beyond your results.
+            </p>
+            <button
+              onClick={t.start}
+              className="mt-3 w-full rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+            >
+              I agree, start practice
+            </button>
+          </div>
+        )}
+
+        {t.finishing && !t.mastery && (
+          <p className="text-sm text-muted-foreground">Wrapping up… Sidekik is preparing your summary.</p>
+        )}
 
         {t.mastery && (
           <div className="rounded-lg border border-border p-3">
@@ -131,13 +175,17 @@ function TutorRoom() {
         )}
 
         {t.phase === "practice" && (
-          <button onClick={t.finish} className="mt-auto rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-            End practice
+          <button
+            onClick={t.finish}
+            disabled={t.finishing}
+            className="mt-auto rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            {t.finishing ? "Wrapping up…" : "End practice"}
           </button>
         )}
       </aside>
 
-      {replay && <ReplayModal title="Sabine's moment" src={t.intervention?.clipUrl ?? null} onClose={() => setReplay(false)} />}
+      {t.replayView && <ReplayModal title={t.replayView.title} src={t.replayView.src} onClose={t.closeReplay} />}
     </div>
   );
 }

@@ -74,7 +74,15 @@ export interface EngineOptions {
 // ---------------------------------------------------------------- state
 
 export type Stage =
-  "awaiting_consent" | "connecting" | "live" | "reviewing" | "debrief" | "ended" | "error";
+  | "awaiting_consent"
+  | "connecting"
+  | "live"
+  | "reviewing"
+  | "debrief"
+  /** Tutor: ended at the gateway, still listening for the mastery `summary`. */
+  | "finishing"
+  | "ended"
+  | "error";
 
 export type ConsentScope = "audio" | "screen" | "storage";
 
@@ -102,6 +110,10 @@ export interface SessionState {
   error: string | null;
 }
 
+/** How long "End practice" waits for tutor's mastery summary, and how long the agent gets to read it. */
+const FINISH_WAIT_MS = 45_000;
+const SUMMARY_READ_MS = 25_000;
+
 /** "[SIDEKIK] …" messages are instructions to the agent, never the person's words. */
 const isSidekikInstruction = (text: string) => text.trimStart().startsWith("[SIDEKIK]");
 
@@ -115,6 +127,7 @@ export class SessionEngine {
   private readonly now: () => number;
   private readonly tZero: number;
   private turnSeq = 0;
+  private finishTimer: ReturnType<typeof setTimeout> | null = null;
   private generation = 0;
 
   constructor(
@@ -254,6 +267,8 @@ export class SessionEngine {
         break;
       case "summary":
         this.set({ mastery: cmd.mastery });
+        // The agent reads the summary aloud; give it time before hanging up.
+        if (this.state.stage === "finishing") this.scheduleTeardown(SUMMARY_READ_MS);
         break;
       case "offrecord":
         this.applyOffRecord(cmd.on);
@@ -323,8 +338,45 @@ export class SessionEngine {
     this.set({ replay: null });
   }
 
+  /**
+   * Tutor "End practice": the gateway ends the session, which makes tutor publish the mastery
+   * `summary`. Keep listening until it arrives (and the agent has read it), then hang up.
+   */
+  async finish(waitMs = FINISH_WAIT_MS) {
+    if (this.state.stage === "ended" || this.state.stage === "finishing") return;
+    this.set({ stage: "finishing" });
+    try {
+      await this.deps.gateway.end(this.sessionId);
+    } catch (err) {
+      this.set({ error: `Couldn't end the session: ${(err as Error).message}` });
+    }
+    this.scheduleTeardown(this.state.mastery ? SUMMARY_READ_MS : waitMs);
+  }
+
   async end() {
     if (this.state.stage === "ended") return;
+    await this.teardown();
+    await this.deps.gateway.end(this.sessionId).catch(() => {});
+  }
+
+  /** A typed answer (the Tutor Room's Predict card): the agent hears it and tutor grades it. */
+  say(text: string) {
+    const clean = text.trim();
+    if (!clean || this.state.offRecord) return;
+    this.conversation?.sendUserMessage(clean);
+    this.recordTurn("user", clean);
+    this.set({ prediction: null });
+  }
+
+  private scheduleTeardown(ms: number) {
+    if (this.finishTimer) clearTimeout(this.finishTimer);
+    this.finishTimer = setTimeout(() => void this.teardown(), ms);
+  }
+
+  private async teardown() {
+    if (this.state.stage === "ended") return;
+    if (this.finishTimer) clearTimeout(this.finishTimer);
+    this.finishTimer = null;
     this.generation++;
     this.set({ stage: "ended" });
     this.vad.reset();
@@ -334,7 +386,6 @@ export class SessionEngine {
     this.conversation = null;
     this.socket?.close();
     this.socket = null;
-    await this.deps.gateway.end(this.sessionId).catch(() => {});
   }
 
   // ---------------------------------------------------------------- agent → page and gateway
@@ -365,10 +416,14 @@ export class SessionEngine {
     const clean = text.trim();
     if (!clean || clean === "..." || isSidekikInstruction(clean)) return;
     if (this.state.offRecord) return;
+    this.recordTurn(role, clean);
+  }
+
+  private recordTurn(role: "user" | "agent", text: string) {
     const t_ms = this.tMs();
     const id = `t${t_ms}-${++this.turnSeq}`;
-    this.set({ transcript: [...this.state.transcript, { id, role, text: clean, t_ms }] });
-    this.send({ type: "turn", role, text: clean, t_ms, turn_id: id });
+    this.set({ transcript: [...this.state.transcript, { id, role, text, t_ms }] });
+    this.send({ type: "turn", role, text, t_ms, turn_id: id });
   }
 
   private onModeChange(mode: "speaking" | "listening") {
