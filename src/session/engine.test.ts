@@ -343,6 +343,19 @@ describe("SessionEngine", () => {
     expect(t.engine.getState().prediction).toBeNull();
   });
 
+  it("observes a replay: commands only, no agent or socket", async () => {
+    const t = setup();
+    t.engine.observe();
+    await t.command({ type: "ctx", text: "invoice 4471 | cost_center 0400" });
+    await t.command({ type: "ask", question_id: "q1", text: "Why?", qtype: "why" });
+    expect(t.conversations).toHaveLength(0);
+    expect(t.engine.getState()).toMatchObject({
+      stage: "live",
+      questionsAsked: 1,
+      screenContext: "invoice 4471 | cost_center 0400",
+    });
+  });
+
   it("ends everything once", async () => {
     const t = setup();
     await t.engine.consent();

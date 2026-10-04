@@ -74,6 +74,20 @@ export async function claimAgentHost(
   return res.json();
 }
 
+export interface ReplayStarted {
+  session_id: string;
+  replay_of: string;
+  sk_token: string;
+  speed: number;
+  events: number;
+  duration_ms: number;
+}
+
+/** POST /v1/replay/:sid {speed}: the gateway re-publishes the recorded session as a new replay session. */
+export function startReplay(sessionId: string, speed: number): Promise<ReplayStarted> {
+  return gatewayPost<ReplayStarted>(`/v1/replay/${encodeURIComponent(sessionId)}`, { speed });
+}
+
 /** The gateway calls the live session engine makes (src/session/engine.ts). */
 export const gatewayClient: GatewayClient = {
   consent: async (sessionId, scopes) => {

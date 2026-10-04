@@ -104,6 +104,15 @@ function SessionPage() {
           {counts.asked} questions asked · {counts.decisions} Jev decisions
         </p>
       </header>
+      {session.mode !== "replay" && (
+        <Link
+          to="/replay/$sid"
+          params={{ sid: session.id }}
+          className="mt-3 inline-flex h-9 items-center rounded-md border border-input px-4 text-sm font-medium hover:bg-accent"
+        >
+          Replay this session
+        </Link>
+      )}
 
       {items.length === 0 ? (
         <p className="mt-8 text-sm text-muted-foreground">Nothing recorded for this session yet.</p>
