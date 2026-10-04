@@ -167,7 +167,11 @@ export class SessionEngine {
     await this.connect();
   }
 
-  private async connect() {
+  /**
+   * Connects without recording consent: /agent-host, where consent was given when the expert
+   * started the meeting session and the page has no user to consent as.
+   */
+  async connect() {
     this.set({ stage: "connecting", error: null });
     this.socket = this.deps.openClientSocket((gatewaySocket) => this.set({ gatewaySocket }));
     this.unsubscribe = this.deps.subscribeCommands((cmd) => void this.handleCommand(cmd));

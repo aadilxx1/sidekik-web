@@ -102,6 +102,13 @@ describe("SessionEngine", () => {
     expect(t.engine.getState().stage).toBe("live");
   });
 
+  it("connects without consent for /agent-host", async () => {
+    const t = setup({ muteWhileSpeaking: true });
+    await t.engine.connect();
+    expect(t.gateway.consent).not.toHaveBeenCalled();
+    expect(t.engine.getState().stage).toBe("live");
+  });
+
   it("stops with an error when consent fails", async () => {
     const t = setup();
     t.gateway.consent.mockRejectedValueOnce(new Error("409"));
