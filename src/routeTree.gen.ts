@@ -14,13 +14,14 @@ import { Route as CostsRouteImport } from './routes/costs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PeopleRouteImport } from './routes/people'
 import { Route as SessionsRouteImport } from './routes/sessions'
-import { Route as WorkflowsRouteImport } from './routes/workflows'
 import { Route as WorkmapsRouteImport } from './routes/workmaps'
 import { Route as AgentHostSidRouteImport } from './routes/agent-host.$sid'
 import { Route as CaptureSidRouteImport } from './routes/capture.$sid'
 import { Route as OrgSettingsRouteImport } from './routes/org.settings'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
 import { Route as TutorSidRouteImport } from './routes/tutor.$sid'
+import { Route as WorkflowsIndexRouteImport } from './routes/workflows.index'
+import { Route as WorkflowsIdRouteImport } from './routes/workflows.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,11 +46,6 @@ const PeopleRoute = PeopleRouteImport.update({
 const SessionsRoute = SessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkflowsRoute = WorkflowsRouteImport.update({
-  id: '/workflows',
-  path: '/workflows',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkmapsRoute = WorkmapsRouteImport.update({
@@ -82,6 +78,16 @@ const TutorSidRoute = TutorSidRouteImport.update({
   path: '/tutor/$sid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkflowsIndexRoute = WorkflowsIndexRouteImport.update({
+  id: '/workflows/',
+  path: '/workflows/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkflowsIdRoute = WorkflowsIdRouteImport.update({
+  id: '/workflows/$id',
+  path: '/workflows/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,13 +95,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
   '/sessions': typeof SessionsRoute
-  '/workflows': typeof WorkflowsRoute
   '/workmaps': typeof WorkmapsRoute
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/tutor/$sid': typeof TutorSidRoute
+  '/workflows/$id': typeof WorkflowsIdRoute
+  '/workflows/': typeof WorkflowsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,13 +110,14 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
   '/sessions': typeof SessionsRoute
-  '/workflows': typeof WorkflowsRoute
   '/workmaps': typeof WorkmapsRoute
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/tutor/$sid': typeof TutorSidRoute
+  '/workflows/$id': typeof WorkflowsIdRoute
+  '/workflows': typeof WorkflowsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -118,13 +126,14 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
   '/sessions': typeof SessionsRoute
-  '/workflows': typeof WorkflowsRoute
   '/workmaps': typeof WorkmapsRoute
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/tutor/$sid': typeof TutorSidRoute
+  '/workflows/$id': typeof WorkflowsIdRoute
+  '/workflows/': typeof WorkflowsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -134,13 +143,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/people'
     | '/sessions'
-    | '/workflows'
     | '/workmaps'
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
     | '/tutor/$sid'
+    | '/workflows/$id'
+    | '/workflows/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -148,13 +158,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/people'
     | '/sessions'
-    | '/workflows'
     | '/workmaps'
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
     | '/tutor/$sid'
+    | '/workflows/$id'
+    | '/workflows'
   id:
     | '__root__'
     | '/'
@@ -162,13 +173,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/people'
     | '/sessions'
-    | '/workflows'
     | '/workmaps'
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
     | '/tutor/$sid'
+    | '/workflows/$id'
+    | '/workflows/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,13 +189,14 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PeopleRoute: typeof PeopleRoute
   SessionsRoute: typeof SessionsRoute
-  WorkflowsRoute: typeof WorkflowsRoute
   WorkmapsRoute: typeof WorkmapsRoute
   AgentHostSidRoute: typeof AgentHostSidRoute
   CaptureSidRoute: typeof CaptureSidRoute
   OrgSettingsRoute: typeof OrgSettingsRoute
   SandboxErpRoute: typeof SandboxErpRoute
   TutorSidRoute: typeof TutorSidRoute
+  WorkflowsIdRoute: typeof WorkflowsIdRoute
+  WorkflowsIndexRoute: typeof WorkflowsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -221,13 +234,6 @@ declare module '@tanstack/react-router' {
       path: '/sessions'
       fullPath: '/sessions'
       preLoaderRoute: typeof SessionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/workflows': {
-      id: '/workflows'
-      path: '/workflows'
-      fullPath: '/workflows'
-      preLoaderRoute: typeof WorkflowsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workmaps': {
@@ -272,6 +278,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TutorSidRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workflows/': {
+      id: '/workflows/'
+      path: '/workflows'
+      fullPath: '/workflows/'
+      preLoaderRoute: typeof WorkflowsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workflows/$id': {
+      id: '/workflows/$id'
+      path: '/workflows/$id'
+      fullPath: '/workflows/$id'
+      preLoaderRoute: typeof WorkflowsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -281,13 +301,14 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PeopleRoute: PeopleRoute,
   SessionsRoute: SessionsRoute,
-  WorkflowsRoute: WorkflowsRoute,
   WorkmapsRoute: WorkmapsRoute,
   AgentHostSidRoute: AgentHostSidRoute,
   CaptureSidRoute: CaptureSidRoute,
   OrgSettingsRoute: OrgSettingsRoute,
   SandboxErpRoute: SandboxErpRoute,
   TutorSidRoute: TutorSidRoute,
+  WorkflowsIdRoute: WorkflowsIdRoute,
+  WorkflowsIndexRoute: WorkflowsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
