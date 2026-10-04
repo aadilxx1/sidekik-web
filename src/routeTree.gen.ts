@@ -21,6 +21,7 @@ import { Route as OrgSettingsRouteImport } from './routes/org.settings'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
 import { Route as TutorSidRouteImport } from './routes/tutor.$sid'
 import { Route as WorkflowsIndexRouteImport } from './routes/workflows.index'
+import { Route as WorkflowsIdRouteImport } from './routes/workflows.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,6 +83,11 @@ const WorkflowsIndexRoute = WorkflowsIndexRouteImport.update({
   path: '/workflows/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkflowsIdRoute = WorkflowsIdRouteImport.update({
+  id: '/workflows/$id',
+  path: '/workflows/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/tutor/$sid': typeof TutorSidRoute
+  '/workflows/$id': typeof WorkflowsIdRoute
   '/workflows/': typeof WorkflowsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/tutor/$sid': typeof TutorSidRoute
+  '/workflows/$id': typeof WorkflowsIdRoute
   '/workflows': typeof WorkflowsIndexRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/tutor/$sid': typeof TutorSidRoute
+  '/workflows/$id': typeof WorkflowsIdRoute
   '/workflows/': typeof WorkflowsIndexRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/org/settings'
     | '/sandbox/erp'
     | '/tutor/$sid'
+    | '/workflows/$id'
     | '/workflows/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/org/settings'
     | '/sandbox/erp'
     | '/tutor/$sid'
+    | '/workflows/$id'
     | '/workflows'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/org/settings'
     | '/sandbox/erp'
     | '/tutor/$sid'
+    | '/workflows/$id'
     | '/workflows/'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   OrgSettingsRoute: typeof OrgSettingsRoute
   SandboxErpRoute: typeof SandboxErpRoute
   TutorSidRoute: typeof TutorSidRoute
+  WorkflowsIdRoute: typeof WorkflowsIdRoute
   WorkflowsIndexRoute: typeof WorkflowsIndexRoute
 }
 
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkflowsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workflows/$id': {
+      id: '/workflows/$id'
+      path: '/workflows/$id'
+      fullPath: '/workflows/$id'
+      preLoaderRoute: typeof WorkflowsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrgSettingsRoute: OrgSettingsRoute,
   SandboxErpRoute: SandboxErpRoute,
   TutorSidRoute: TutorSidRoute,
+  WorkflowsIdRoute: WorkflowsIdRoute,
   WorkflowsIndexRoute: WorkflowsIndexRoute,
 }
 export const routeTree = rootRouteImport
