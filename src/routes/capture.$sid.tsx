@@ -4,8 +4,8 @@ import { useScreenCapture } from "@/hooks/useScreenCapture";
 import { useSidekikSession, type SessionStatus } from "@/hooks/useSidekikSession";
 
 export const Route = createFileRoute("/capture/$sid")({
-  // `?t=<sk_token>`: dev-only way to test frames against perception until useSidekikSession
-  // (ticket 3) gets the real token from POST /v1/sessions.
+  // `?t=<sk_token>`: dev-only way to test frames against perception without a gateway session.
+  // Normally the token comes from POST /v1/sessions (useSidekikSession).
   validateSearch: (search: Record<string, unknown>): { t?: string } =>
     typeof search["t"] === "string" ? { t: search["t"] } : {},
   head: () => ({
@@ -34,8 +34,19 @@ const STATUS_LABEL: Record<SessionStatus, string> = {
 function CaptureRoom() {
   const { sid } = Route.useParams();
   const { t: devToken } = Route.useSearch();
-  const s = useSidekikSession(sid);
-  const capture = useScreenCapture({ sid, skToken: devToken ?? null, paused: s.offRecord });
+  const erpWindow = useRef<Window | null>(null);
+  // highlight_field tool and intervene commands: point the MiniERP at a field.
+  const s = useSidekikSession(sid, {
+    onHighlightField: (field) =>
+      erpWindow.current?.postMessage({ type: "highlight_field", field }, window.location.origin),
+  });
+  const capture = useScreenCapture({
+    sid,
+    skToken: devToken ?? s.skToken,
+    ingestUrl: devToken ? null : s.ingestUrl,
+    paused: s.offRecord,
+    tZeroMs: s.tZeroMs,
+  });
   const sharing = capture.sharing;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [consented, setConsented] = useState(false);
@@ -44,14 +55,17 @@ function CaptureRoom() {
     if (videoRef.current) videoRef.current.srcObject = capture.stream;
   }, [capture.stream]);
 
-  const shareScreen = async () => {
-    const stream = await capture.start();
-    if (stream && s.phase === "idle") s.start();
-  };
+  const shareScreen = () => void capture.start();
+  const live = s.phase === "capture" || s.phase === "reviewing" || s.phase === "debrief";
 
   // A named second window keeps `window.opener` pointing here, so MiniERP events reach this room.
-  const openErp = () =>
-    window.open(`/sandbox/erp?sid=${encodeURIComponent(sid)}&mode=capture`, "sidekik-minierp", "width=1280,height=800");
+  const openErp = () => {
+    erpWindow.current = window.open(
+      `/sandbox/erp?sid=${encodeURIComponent(sid)}&mode=capture`,
+      "sidekik-minierp",
+      "width=1280,height=800",
+    );
+  };
 
   return (
     <div className="flex h-full">
@@ -77,13 +91,24 @@ function CaptureRoom() {
         </div>
         {sharing && (
           <p className="text-xs text-muted-foreground">
-            Frames sent {capture.stats.sent} · dropped {capture.stats.dropped} · ingest {devToken ? capture.stats.socket : "no session token"}
+            Frames sent {capture.stats.sent} · dropped {capture.stats.dropped} · ingest{" "}
+            {devToken || s.skToken ? capture.stats.socket : "waiting for consent"}
           </p>
         )}
       </section>
 
       <aside className="flex w-80 shrink-0 flex-col gap-4 border-l border-border p-4">
         <StatusPill status={s.status} />
+        {s.found === false && !devToken && (
+          <p role="alert" className="rounded-md border border-destructive p-2 text-sm text-destructive">
+            This session can't be resumed in this tab. Start a new capture from Home.
+          </p>
+        )}
+        {s.error && (
+          <p role="alert" className="rounded-md bg-destructive/10 p-2 text-sm text-destructive">
+            {s.error}
+          </p>
+        )}
 
         <div className="flex min-h-0 flex-1 flex-col">
           <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Live transcript</h2>
@@ -102,9 +127,10 @@ function CaptureRoom() {
 
         <button
           onClick={s.toggleOffRecord}
+          disabled={!live}
           aria-pressed={s.offRecord}
           className={`rounded-lg border-2 py-4 text-base font-bold ${
-            s.offRecord ? "border-destructive bg-destructive text-destructive-foreground" : "border-destructive text-destructive hover:bg-destructive/10"
+            s.offRecord ? "border-destructive bg-destructive text-destructive-foreground" : "border-destructive text-destructive hover:bg-destructive/10 disabled:opacity-50"
           }`}
         >
           {s.offRecord ? "Back on the record" : "Off the record"}
@@ -112,7 +138,7 @@ function CaptureRoom() {
 
         <button
           onClick={s.taskDone}
-          disabled={s.phase === "reviewing" || s.phase === "debrief"}
+          disabled={s.phase !== "capture"}
           className="rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
         >
           Task done
@@ -120,7 +146,14 @@ function CaptureRoom() {
         {s.phase === "reviewing" && <p className="text-center text-sm text-muted-foreground">Sidekik is reviewing your session…</p>}
       </aside>
 
-      {!consented && <ConsentModal onAccept={() => setConsented(true)} />}
+      {!consented && s.found && (
+        <ConsentModal
+          onAccept={() => {
+            setConsented(true);
+            void s.consent();
+          }}
+        />
+      )}
     </div>
   );
 }

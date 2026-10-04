@@ -1,51 +1,153 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { gatewayClient } from "@/lib/api";
+import {
+  openGatewaySocket,
+  startElevenLabsConversation,
+  subscribeAgentCommands,
+} from "@/session/adapters";
+import { SessionEngine, type SessionState, type TranscriptEntry } from "@/session/engine";
+import { loadSessionStart, type SessionStart } from "@/session/handoff";
 
-// STUB — Claude Code will implement the real session (gateway, WebSockets, Realtime, ElevenAgents).
+// Ticket 3: the live session for the Capture/Debrief Room (and the Tutor Room, ticket 8).
+// The engine (src/session/engine.ts) does the work; this hook gives it to React.
 
 export type SessionStatus = "listening" | "asking" | "reviewing" | "debrief" | "offrecord";
-export type SessionPhase = "idle" | "capture" | "reviewing" | "debrief";
+export type SessionPhase = "idle" | "capture" | "reviewing" | "debrief" | "ended";
+export type TranscriptTurn = TranscriptEntry;
 
-export interface TranscriptTurn {
-  id: string;
-  role: "agent" | "user";
-  text: string;
-  t_ms: number;
+export interface UseSidekikSessionOptions {
+  onHighlightField?: (field: string) => void;
+  onReplayRequest?: (stepId: string) => void;
 }
 
-const MOCK_TRANSCRIPT: TranscriptTurn[] = [
-  { id: "1", role: "agent", text: "Hi, I'm Sidekik. Just work as you normally would — I'll ask a question now and then.", t_ms: 0 },
-  { id: "2", role: "user", text: "Okay, I'm opening invoice 4471 from Präzisionswerk Ulm.", t_ms: 8200 },
-  { id: "3", role: "agent", text: "You changed the cost center from 4711 to 0400. What made you do that?", t_ms: 31500 },
-];
+// One engine per session id. React mounts twice in development, so a room that unmounts only
+// ends its session if it isn't mounted again right away.
+const engines = new Map<
+  string,
+  { engine: SessionEngine; mounts: number; endTimer?: ReturnType<typeof setTimeout> }
+>();
 
-export function useSidekikSession(_sid: string) {
-  const [phase, setPhase] = useState<SessionPhase>("idle");
-  const [offRecord, setOffRecord] = useState(false);
-  const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
+function acquire(sid: string, start: SessionStart, opts: UseSidekikSessionOptions) {
+  let entry = engines.get(sid);
+  if (!entry) {
+    const engine = new SessionEngine(
+      {
+        session: start.response,
+        kind: start.kind,
+        language: start.language,
+        tZeroMs: start.startedAt,
+        onHighlightField: (f) => opts.onHighlightField?.(f),
+        onReplayRequest: (s) => opts.onReplayRequest?.(s),
+      },
+      {
+        gateway: gatewayClient,
+        startConversation: startElevenLabsConversation,
+        openClientSocket: (onStatus) => openGatewaySocket(sid, start.response.sk_token, onStatus),
+        subscribeCommands: (onCommand) => subscribeAgentCommands(sid, onCommand),
+      },
+    );
+    entry = { engine, mounts: 0 };
+    engines.set(sid, entry);
+  }
+  if (entry.endTimer) clearTimeout(entry.endTimer);
+  entry.mounts += 1;
+  return entry.engine;
+}
 
-  const status: SessionStatus = offRecord
-    ? "offrecord"
-    : phase === "reviewing"
-      ? "reviewing"
-      : phase === "debrief"
-        ? "debrief"
-        : transcript.at(-1)?.role === "agent" && transcript.length > 1
-          ? "asking"
-          : "listening";
+function release(sid: string) {
+  const entry = engines.get(sid);
+  if (!entry) return;
+  entry.mounts -= 1;
+  if (entry.mounts > 0) return;
+  entry.endTimer = setTimeout(() => {
+    engines.delete(sid);
+    void entry.engine.end();
+  }, 250);
+}
 
-  const questionsAsked = transcript.filter((t) => t.role === "agent" && t.text.trim().endsWith("?")).length;
+const emptySubscribe = () => () => {};
 
-  const start = useCallback(() => {
-    setPhase("capture");
-    setTranscript(MOCK_TRANSCRIPT);
-  }, []);
+export function useSidekikSession(sid: string, opts: UseSidekikSessionOptions = {}) {
+  // sessionStorage only exists in the browser; the route also renders on the server.
+  const [start, setStart] = useState<SessionStart | null | undefined>(undefined);
+  const [engine, setEngine] = useState<SessionEngine | null>(null);
 
-  const toggleOffRecord = useCallback(() => setOffRecord((v) => !v), []);
+  useEffect(() => {
+    const s = loadSessionStart(sid);
+    setStart(s);
+    if (!s) return;
+    const e = acquire(sid, s, opts);
+    setEngine(e);
+    return () => release(sid);
+    // The callbacks are read through `opts` at call time; re-creating the engine would end the call.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sid]);
 
-  const taskDone = useCallback(() => {
-    setPhase("reviewing");
-    setTimeout(() => setPhase("debrief"), 2500);
-  }, []);
+  const state: SessionState | null = useSyncExternalStore(
+    engine?.subscribe ?? emptySubscribe,
+    () => engine?.getState() ?? null,
+    () => null,
+  );
 
-  return { status, transcript, questionsAsked, offRecord, phase, start, toggleOffRecord, taskDone };
+  // MiniERP DOM events (second tab or iframe) go to the gateway through the engine.
+  useEffect(() => {
+    if (!engine) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data as { type?: unknown } | null;
+      if (d && typeof d === "object" && d.type === "dom") engine.relayDom(d);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [engine]);
+
+  const consent = useCallback(() => engine?.consent(), [engine]);
+  const toggleOffRecord = useCallback(() => void engine?.toggleOffRecord(), [engine]);
+  const taskDone = useCallback(() => void engine?.taskDone(), [engine]);
+  const end = useCallback(() => engine?.end(), [engine]);
+
+  return useMemo(() => {
+    const stage = state?.stage;
+    const status: SessionStatus = state?.offRecord
+      ? "offrecord"
+      : stage === "reviewing"
+        ? "reviewing"
+        : stage === "debrief"
+          ? "debrief"
+          : state?.agentMode === "speaking"
+            ? "asking"
+            : "listening";
+    const phase: SessionPhase =
+      !stage || stage === "awaiting_consent"
+        ? "idle"
+        : stage === "reviewing"
+          ? "reviewing"
+          : stage === "debrief"
+            ? "debrief"
+            : stage === "ended"
+              ? "ended"
+              : "capture";
+    const connected = !!stage && stage !== "awaiting_consent" && stage !== "error";
+    return {
+      /** undefined while loading, false when this tab has no start data for the session. */
+      found: start === undefined ? undefined : start !== null,
+      state,
+      status,
+      phase,
+      transcript: state?.transcript ?? [],
+      questionsAsked: state?.questionsAsked ?? 0,
+      offRecord: state?.offRecord ?? false,
+      error: state?.error ?? null,
+      /** Frames may only flow once consent is recorded (perception refuses before that). */
+      skToken: connected ? (start?.response.sk_token ?? null) : null,
+      ingestUrl: start?.response.ingest_url ?? null,
+      tZeroMs: start?.startedAt ?? null,
+      consent,
+      toggleOffRecord,
+      taskDone,
+      end,
+      dismissIntervention: () => engine?.dismissIntervention(),
+      dismissReplay: () => engine?.dismissReplay(),
+    };
+  }, [state, start, engine, consent, toggleOffRecord, taskDone, end]);
 }

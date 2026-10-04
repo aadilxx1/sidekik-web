@@ -2,6 +2,9 @@
 // Never write to Supabase directly from the browser.
 import { API_URL } from "@/lib/config";
 import { supabase } from "@/integrations/supabase/client";
+import type { CreateSessionResponse } from "@/session/contract";
+import type { GatewayClient } from "@/session/engine";
+import { saveSessionStart } from "@/session/handoff";
 
 export type SessionKind = "capture" | "tutor";
 
@@ -16,15 +19,65 @@ export async function authHeaders(): Promise<Record<string, string>> {
 export interface CreateSessionInput {
   workflow_id: string;
   kind: SessionKind;
+  /** The agents speak English only (team decision, sidekik-voice NOTES.md). */
+  language?: string;
+  mode?: "browser" | "meeting";
+  workmap_id?: string;
 }
 export interface CreateSessionResult {
   session_id: string;
 }
-// TODO: POST `${API_URL}/v1/sessions`.
-export async function createSession(_input: CreateSessionInput): Promise<CreateSessionResult> {
-  void API_URL;
-  throw new Error("not implemented");
+
+async function gatewayPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) {
+    const detail = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(detail?.message ?? `Gateway ${res.status} for ${path}`);
+  }
+  return (await res.json().catch(() => ({}))) as T;
 }
+
+/**
+ * POST /v1/sessions. The full answer (sk_token, ElevenLabs token, frames URL) is handed to the
+ * room through sessionStorage; the ElevenLabs token is single-use, so a reload starts over.
+ */
+export async function createSession(input: CreateSessionInput): Promise<CreateSessionResult> {
+  const language = input.language ?? "en";
+  const res = await gatewayPost<CreateSessionResponse>("/v1/sessions", {
+    workflow_id: input.workflow_id,
+    kind: input.kind,
+    mode: input.mode ?? "browser",
+    language,
+    ...(input.workmap_id ? { workmap_id: input.workmap_id } : {}),
+  });
+  saveSessionStart({ response: res, kind: input.kind, language, startedAt: Date.now() });
+  return { session_id: res.session_id };
+}
+
+/** The gateway calls the live session engine makes (src/session/engine.ts). */
+export const gatewayClient: GatewayClient = {
+  consent: async (sessionId, scopes) => {
+    await gatewayPost(`/v1/sessions/${encodeURIComponent(sessionId)}/consent`, {
+      text_version: "v1",
+      scopes,
+    });
+  },
+  setOffRecord: async (sessionId, on, source) => {
+    await gatewayPost(`/v1/sessions/${encodeURIComponent(sessionId)}/off-record`, { on, source });
+  },
+  taskDone: async (sessionId) => {
+    await gatewayPost(`/v1/sessions/${encodeURIComponent(sessionId)}/phase`, {
+      event: "task_done",
+    });
+  },
+  end: async (sessionId) => {
+    await gatewayPost(`/v1/sessions/${encodeURIComponent(sessionId)}/end`, {});
+  },
+};
 
 // ---------- Workflows ----------
 export interface CreateWorkflowInput {
