@@ -5,7 +5,12 @@ import {
   startElevenLabsConversation,
   subscribeAgentCommands,
 } from "@/session/adapters";
-import { SessionEngine, type SessionState, type TranscriptEntry } from "@/session/engine";
+import {
+  SessionEngine,
+  type ConsentScope,
+  type SessionState,
+  type TranscriptEntry,
+} from "@/session/engine";
 import { loadSessionStart, type SessionStart } from "@/session/handoff";
 
 // Ticket 3: the live session for the Capture/Debrief Room (and the Tutor Room, ticket 8).
@@ -101,7 +106,9 @@ export function useSidekikSession(sid: string, opts: UseSidekikSessionOptions = 
     return () => window.removeEventListener("message", onMessage);
   }, [engine]);
 
-  const consent = useCallback(() => engine?.consent(), [engine]);
+  const consent = useCallback((scopes?: ConsentScope[]) => engine?.consent(scopes), [engine]);
+  const say = useCallback((text: string) => engine?.say(text), [engine]);
+  const finish = useCallback(() => engine?.finish(), [engine]);
   const toggleOffRecord = useCallback(() => void engine?.toggleOffRecord(), [engine]);
   const taskDone = useCallback(() => void engine?.taskDone(), [engine]);
   const end = useCallback(() => engine?.end(), [engine]);
@@ -124,7 +131,7 @@ export function useSidekikSession(sid: string, opts: UseSidekikSessionOptions = 
           ? "reviewing"
           : stage === "debrief"
             ? "debrief"
-            : stage === "ended"
+            : stage === "ended" || stage === "finishing"
               ? "ended"
               : "capture";
     const connected = !!stage && stage !== "awaiting_consent" && stage !== "error";
@@ -146,8 +153,10 @@ export function useSidekikSession(sid: string, opts: UseSidekikSessionOptions = 
       toggleOffRecord,
       taskDone,
       end,
+      say,
+      finish,
       dismissIntervention: () => engine?.dismissIntervention(),
       dismissReplay: () => engine?.dismissReplay(),
     };
-  }, [state, start, engine, consent, toggleOffRecord, taskDone, end]);
+  }, [state, start, engine, consent, toggleOffRecord, taskDone, end, say, finish]);
 }
