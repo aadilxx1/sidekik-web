@@ -81,11 +81,24 @@ export async function updateOrgSettings(_input: OrgSettings): Promise<void> {
 }
 
 // ---------- Work Maps ----------
-// TODO: GET `${API_URL}/v1/workmaps/:workmapId/steps/:stepId/clip` with authHeaders(); returns a signed URL.
-export async function getClipUrl(_workmapId: string, _stepId: string): Promise<string> {
-  throw new Error("not implemented");
+async function gatewayGet(path: string): Promise<Response> {
+  const res = await fetch(`${API_URL}${path}`, { headers: await authHeaders() });
+  if (!res.ok) throw new Error(`Gateway ${res.status} for ${path}`);
+  return res;
 }
-// TODO: POST `${API_URL}/v1/workmaps/:workmapId/export` with authHeaders(); returns agent rules.
-export async function exportAgentRules(_workmapId: string): Promise<unknown> {
-  throw new Error("not implemented");
+
+/** Signed clip URL (10 min) for a step's screen moment: GET /v1/workmaps/:id/steps/:step/clip → {url}. */
+export async function getClipUrl(workmapId: string, stepId: string): Promise<string> {
+  const res = await gatewayGet(
+    `/v1/workmaps/${encodeURIComponent(workmapId)}/steps/${encodeURIComponent(stepId)}/clip`,
+  );
+  const { url } = (await res.json()) as { url?: unknown };
+  if (typeof url !== "string") throw new Error("Gateway returned no clip URL");
+  return url;
+}
+
+/** Agent-ready rules (AGENT_RULES.md + JSON-Logic guardrails): GET /v1/workmaps/:id/export?format=agent. */
+export async function exportAgentRules(workmapId: string): Promise<unknown> {
+  const res = await gatewayGet(`/v1/workmaps/${encodeURIComponent(workmapId)}/export?format=agent`);
+  return res.json();
 }
