@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ComingSoon } from "@/components/ComingSoon";
 
-export const Route = createFileRoute("/workflows")({
+export const Route = createFileRoute("/workflows/")({
   head: () => ({
     meta: [
       { title: "Workflows | sidekik" },
