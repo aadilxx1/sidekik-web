@@ -38,7 +38,7 @@ function AgentHostPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div
-        className="flex w-full max-w-[1280px] flex-col items-center justify-center rounded-2xl border border-border bg-card shadow-sm"
+        className="relative flex w-full max-w-[1280px] flex-col items-center justify-center rounded-2xl border border-border bg-card shadow-sm"
         style={{ aspectRatio: "16 / 9" }}
       >
         {error ? (

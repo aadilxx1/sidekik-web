@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // STUB — Claude Code will implement the real session (agent-host claim, ElevenAgents, Realtime commands).
 
@@ -14,10 +14,10 @@ export function useAgentHost(_sid: string, _t?: string): AgentHostState {
   const [status, setStatus] = useState<AgentHostStatus>("connecting");
   const [error] = useState<string | null>(null);
 
-  useState(() => {
+  useEffect(() => {
     const id = setTimeout(() => setStatus("listening"), 1200);
     return () => clearTimeout(id);
-  });
+  }, []);
 
   return { status, error };
 }
