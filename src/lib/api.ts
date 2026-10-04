@@ -79,3 +79,13 @@ export interface OrgSettings {
 export async function updateOrgSettings(_input: OrgSettings): Promise<void> {
   throw new Error("not implemented");
 }
+
+// ---------- Work Maps ----------
+// TODO: GET `${API_URL}/v1/workmaps/:workmapId/steps/:stepId/clip` with authHeaders(); returns a signed URL.
+export async function getClipUrl(_workmapId: string, _stepId: string): Promise<string> {
+  throw new Error("not implemented");
+}
+// TODO: POST `${API_URL}/v1/workmaps/:workmapId/export` with authHeaders(); returns agent rules.
+export async function exportAgentRules(_workmapId: string): Promise<unknown> {
+  throw new Error("not implemented");
+}
