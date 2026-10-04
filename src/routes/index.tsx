@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 import { createSession, type SessionKind } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
@@ -44,13 +44,14 @@ const TABLES = [
 function AdminDashboard({ orgId }: { orgId: string }) {
   const { data } = useQuery({
     queryKey: ["dashboard-counts", orgId],
-    queryFn: async () =>
-      Promise.all(
-        TABLES.map(async ({ table }) => {
-          const { count } = await db.from(table).select("id", { count: "exact", head: true }).eq("org_id", orgId);
-          return count ?? 0;
-        }),
-      ),
+    queryFn: async () => {
+      const [workflows, sessions, workMaps] = await Promise.all([
+        supabase.from("workflows").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+        supabase.from("sessions").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+        supabase.from("work_maps").select("id", { count: "exact", head: true }).eq("org_id", orgId),
+      ]);
+      return [workflows.count ?? 0, sessions.count ?? 0, workMaps.count ?? 0];
+    },
   });
   return (
     <>
@@ -75,8 +76,8 @@ function StartCard({ orgId, kind, title, body }: { orgId: string; kind: SessionK
   const { data: workflows = [] } = useQuery({
     queryKey: ["workflows", orgId],
     queryFn: async () => {
-      const { data } = await db.from("workflows").select("id, name").eq("org_id", orgId).order("name");
-      return (data ?? []) as { id: string; name: string }[];
+      const { data } = await supabase.from("workflows").select("id, name").eq("org_id", orgId).order("name");
+      return data ?? [];
     },
   });
   const selected = workflowId || workflows[0]?.id || "";

@@ -19,4 +19,3 @@
 - In `src/routes/capture.$sid.tsx`, `src/routes/sandbox.erp.tsx` and `src/routes/tutor.$sid.tsx` keep all existing logic (screen capture, DOM events, presave, the `?t`, `?sid` and `?mode` search params, Open MiniERP buttons); only change layout and styling there.
 - The routes `/login`, `/sandbox/erp` and `/agent-host/$sid` render full-screen without the AppShell sidebar.
 - Session and org membership come from `AuthProvider` (`src/lib/auth.tsx`); the signed-out redirect to `/login` happens in `AppShell`, because the room routes must stay at their current top-level paths.
-- Reads of backend tables go through the untyped `db` client in `src/lib/db.ts` until the generated Supabase types include them.
