@@ -44,7 +44,8 @@ function TutorRoom() {
     }
   };
 
-  const openErp = () => window.open("/sandbox/erp", "sidekik-minierp", "width=1280,height=800");
+  const openErp = () =>
+    window.open(`/sandbox/erp?sid=${encodeURIComponent(sid)}&mode=tutor`, "sidekik-minierp", "width=1280,height=800");
 
   return (
     <div className="flex h-screen">

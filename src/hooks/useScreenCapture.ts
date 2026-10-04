@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { extraFrameReason } from "@/capture/extraFrameReason";
 import { encodeFrame, type FrameReason } from "@/capture/frameCodec";
 import { FrameScheduler } from "@/capture/frameScheduler";
 import { grabJpeg } from "@/capture/grabJpeg";
@@ -20,14 +21,6 @@ export interface ScreenCaptureStats {
   dropped: number;
   socket: SocketStatus;
 }
-
-// MiniERP DOM event kinds (src/sandbox/domEvents.ts) that deserve an extra frame.
-const EXTRA_FRAME_REASON: Record<string, FrameReason> = {
-  blur: "blur",
-  save_attempt: "save",
-  save: "save",
-  record_open: "nav",
-};
 
 /**
  * DESIGN §4 step 3 / ticket 4: share the screen, send a 1280 px JPEG to perception once a
@@ -121,9 +114,7 @@ export function useScreenCapture({ sid, skToken, paused, tZeroMs }: ScreenCaptur
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      const d = e.data as { type?: unknown; kind?: unknown } | null;
-      if (!d || d.type !== "dom" || typeof d.kind !== "string") return;
-      const reason = EXTRA_FRAME_REASON[d.kind];
+      const reason = extraFrameReason(e.data);
       if (reason) schedulerRef.current?.request(reason);
     };
     window.addEventListener("message", onMessage);
