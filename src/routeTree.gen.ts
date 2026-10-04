@@ -16,6 +16,7 @@ import { Route as PeopleRouteImport } from './routes/people'
 import { Route as AgentHostSidRouteImport } from './routes/agent-host.$sid'
 import { Route as CaptureSidRouteImport } from './routes/capture.$sid'
 import { Route as OrgSettingsRouteImport } from './routes/org.settings'
+import { Route as ReplaySidRouteImport } from './routes/replay.$sid'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
 import { Route as SessionsIndexRouteImport } from './routes/sessions.index'
 import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
@@ -58,6 +59,11 @@ const CaptureSidRoute = CaptureSidRouteImport.update({
 const OrgSettingsRoute = OrgSettingsRouteImport.update({
   id: '/org/settings',
   path: '/org/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReplaySidRoute = ReplaySidRouteImport.update({
+  id: '/replay/$sid',
+  path: '/replay/$sid',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SandboxErpRoute = SandboxErpRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
+  '/replay/$sid': typeof ReplaySidRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/tutor/$sid': typeof TutorSidRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
+  '/replay/$sid': typeof ReplaySidRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/tutor/$sid': typeof TutorSidRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
+  '/replay/$sid': typeof ReplaySidRoute
   '/sandbox/erp': typeof SandboxErpRoute
   '/sessions/$id': typeof SessionsIdRoute
   '/tutor/$sid': typeof TutorSidRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
+    | '/replay/$sid'
     | '/sandbox/erp'
     | '/sessions/$id'
     | '/tutor/$sid'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
+    | '/replay/$sid'
     | '/sandbox/erp'
     | '/sessions/$id'
     | '/tutor/$sid'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
+    | '/replay/$sid'
     | '/sandbox/erp'
     | '/sessions/$id'
     | '/tutor/$sid'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   AgentHostSidRoute: typeof AgentHostSidRoute
   CaptureSidRoute: typeof CaptureSidRoute
   OrgSettingsRoute: typeof OrgSettingsRoute
+  ReplaySidRoute: typeof ReplaySidRoute
   SandboxErpRoute: typeof SandboxErpRoute
   SessionsIdRoute: typeof SessionsIdRoute
   TutorSidRoute: typeof TutorSidRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/org/settings'
       fullPath: '/org/settings'
       preLoaderRoute: typeof OrgSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/replay/$sid': {
+      id: '/replay/$sid'
+      path: '/replay/$sid'
+      fullPath: '/replay/$sid'
+      preLoaderRoute: typeof ReplaySidRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sandbox/erp': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentHostSidRoute: AgentHostSidRoute,
   CaptureSidRoute: CaptureSidRoute,
   OrgSettingsRoute: OrgSettingsRoute,
+  ReplaySidRoute: ReplaySidRoute,
   SandboxErpRoute: SandboxErpRoute,
   SessionsIdRoute: SessionsIdRoute,
   TutorSidRoute: TutorSidRoute,

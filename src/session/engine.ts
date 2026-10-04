@@ -108,6 +108,8 @@ export interface SessionState {
   mastery: MasterySummary | null;
   gatewaySocket: SocketStatus;
   error: string | null;
+  /** The latest `ctx` line: what Sidekik sees on screen. */
+  screenContext: string | null;
 }
 
 /** How long "End practice" waits for tutor's mastery summary, and how long the agent gets to read it. */
@@ -150,6 +152,7 @@ export class SessionEngine {
       mastery: null,
       gatewaySocket: "closed",
       error: null,
+      screenContext: null,
     };
     this.vad = new VoiceActivityTracker((edge) => this.sendSpeech(edge));
   }
@@ -170,6 +173,15 @@ export class SessionEngine {
   }
 
   /** Consent first (the gateway and perception refuse sockets without it), then connect. */
+  /**
+   * Replay mode (ticket 11): only receive commands, with no microphone, screen or agent.
+   * The gateway re-broadcasts a recorded session's commands under a new replay session id.
+   */
+  observe() {
+    this.unsubscribe ??= this.deps.subscribeCommands((cmd) => void this.handleCommand(cmd));
+    this.set({ stage: "live", error: null });
+  }
+
   async consent(scopes: ConsentScope[] = ["audio", "screen", "storage"]) {
     try {
       await this.deps.gateway.consent(this.sessionId, scopes);
@@ -236,6 +248,7 @@ export class SessionEngine {
 
     const action = pageAction(cmd);
     if (action.kind === "contextual_update") {
+      this.set({ screenContext: action.text });
       this.conversation?.sendContextualUpdate(
         action.text,
         cmd.type === "ctx" && cmd.context_id ? { contextId: cmd.context_id } : undefined,

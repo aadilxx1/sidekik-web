@@ -34,6 +34,7 @@ const base: SessionState = {
   replay: null,
   mastery: null,
   gatewaySocket: "open",
+  screenContext: null,
   error: null,
 };
 
