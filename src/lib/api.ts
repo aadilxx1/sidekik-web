@@ -58,6 +58,22 @@ export async function createSession(input: CreateSessionInput): Promise<CreateSe
   return { session_id: res.session_id };
 }
 
+/** POST /v1/agent-host/claim: no JWT, the one-time `t` from the Recall bot's URL is the credential. */
+export async function claimAgentHost(
+  t: string,
+): Promise<{ session_id: string; sk_token: string; el: CreateSessionResponse["el"] }> {
+  const res = await fetch(`${API_URL}/v1/agent-host/claim`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ t }),
+  });
+  if (!res.ok) {
+    const detail = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(detail?.message ?? `Gateway ${res.status} for /v1/agent-host/claim`);
+  }
+  return res.json();
+}
+
 /** The gateway calls the live session engine makes (src/session/engine.ts). */
 export const gatewayClient: GatewayClient = {
   consent: async (sessionId, scopes) => {
