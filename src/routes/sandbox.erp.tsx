@@ -1,10 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import seed from "@/sandbox/invoices.json";
-import { emitDomEvent } from "@/sandbox/domEvents";
-import { presave } from "@/sandbox/presave";
+import { domEvent, emitDomEvent, emitFrameHint, wireValue } from "@/sandbox/domEvents";
+import { toInvoiceState, type SandboxInvoice } from "@/sandbox/invoiceState";
+import { presave, type SandboxMode } from "@/sandbox/presave";
 
 export const Route = createFileRoute("/sandbox/erp")({
+  // Opened by the Capture/Tutor Room as /sandbox/erp?sid=<session>&mode=capture|tutor.
+  // Without sid it's a standalone sandbox: every save is allowed.
+  validateSearch: (search: Record<string, unknown>): { sid?: string; mode?: SandboxMode } => ({
+    ...(typeof search["sid"] === "string" ? { sid: search["sid"] } : {}),
+    ...(search["mode"] === "capture" || search["mode"] === "tutor" ? { mode: search["mode"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "MiniERP — Accounts Payable | Sidekik" },
@@ -18,13 +25,19 @@ export const Route = createFileRoute("/sandbox/erp")({
   component: ErpPage,
 });
 
-type Invoice = (typeof seed)[number];
+type Invoice = SandboxInvoice;
 type Field = keyof Invoice;
 
-const clone = (): Invoice[] => JSON.parse(JSON.stringify(seed));
+// Tutor cases (4510, 4511) are never shown in capture; the tutor only practises on them.
+const visibleIn = (mode: SandboxMode | undefined) => (inv: Invoice) =>
+  mode === "capture" ? !inv.tutor_case : mode === "tutor" ? inv.tutor_case : true;
+
+const clone = (mode: SandboxMode | undefined): Invoice[] =>
+  (JSON.parse(JSON.stringify(seed)) as Invoice[]).filter(visibleIn(mode));
 
 function ErpPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>(clone);
+  const { sid, mode } = Route.useSearch();
+  const [invoices, setInvoices] = useState<Invoice[]>(() => clone(mode));
   const [selectedId, setSelectedId] = useState(invoices[0]!.invoice_id);
   const [draft, setDraft] = useState<Invoice>(invoices[0]!);
   const [banner, setBanner] = useState<string | null>(null);
@@ -41,11 +54,11 @@ function ErpPage() {
     setBanner(null);
     setNotice(null);
     setHighlight(null);
-    emitDomEvent({ kind: "record_open", record: rec(inv.invoice_id), field: null, before: null, after: null, state: inv });
+    emitDomEvent(domEvent("record_open", { record: rec(inv.invoice_id), state: toInvoiceState(inv) }));
   };
 
   useEffect(() => {
-    emitDomEvent({ kind: "record_open", record: rec(draft.invoice_id), field: null, before: null, after: null, state: draft });
+    emitDomEvent(domEvent("record_open", { record: rec(draft.invoice_id), state: toInvoiceState(draft) }));
     const onMsg = (e: MessageEvent) => {
       const d = e.data;
       if (!d || typeof d !== "object") return;
@@ -53,7 +66,7 @@ function ErpPage() {
         setHighlight(d.field);
         document.getElementById(`f-${d.field}`)?.focus();
       } else if (d.type === "reset_case") {
-        const fresh = clone();
+        const fresh = clone(mode);
         setInvoices(fresh);
         const cur = fresh.find((i) => i.invoice_id === draftRef.current.invoice_id) ?? fresh[0]!;
         setSelectedId(cur.invoice_id);
@@ -73,13 +86,21 @@ function ErpPage() {
     const next = { ...draft, [field]: value };
     setDraft(next);
     if (highlight === field) setHighlight(null);
-    emitDomEvent({ kind: "change", record: rec(draft.invoice_id), field, before, after: value, state: next });
+    emitDomEvent(
+      domEvent("field_change", {
+        record: rec(draft.invoice_id),
+        field,
+        before: wireValue(before),
+        after: wireValue(value),
+        state: toInvoiceState(next),
+      }),
+    );
   };
 
   const focus = (field: Field) =>
-    emitDomEvent({ kind: "focus", record: rec(draft.invoice_id), field, before: draft[field], after: draft[field], state: draft });
-  const blur = (field: Field) =>
-    emitDomEvent({ kind: "blur", record: rec(draft.invoice_id), field, before: draft[field], after: draft[field], state: draft });
+    emitDomEvent(domEvent("field_focus", { record: rec(draft.invoice_id), field, state: toInvoiceState(draft) }));
+  // Blur isn't a DomEvent kind; it only asks the room for an extra screen frame.
+  const blur = (_field: Field) => emitFrameHint("blur");
 
   const commit = (next: Invoice) => {
     setInvoices((list) => list.map((i) => (i.invoice_id === next.invoice_id ? next : i)));
@@ -88,19 +109,25 @@ function ErpPage() {
 
   const save = async () => {
     const state = draft;
-    emitDomEvent({ kind: "save_attempt", record: rec(state.invoice_id), field: null, before: null, after: null, state });
+    const invoiceState = toInvoiceState(state);
+    emitDomEvent(domEvent("save_attempt", { record: rec(state.invoice_id), state: invoiceState }));
     setBanner(null);
     setNotice(null);
-    const res = await presave(state);
+    const res = await presave(invoiceState, { sid, mode });
     if (!res.allow) {
-      setBanner(res.quote ?? "Save blocked by guardrail.");
-      setHighlight(res.field ?? "cost_center");
+      setBanner(
+        res.unavailable
+          ? "Couldn't check this invoice against the rules. Try saving again."
+          : (res.quote ?? "Save blocked by guardrail."),
+      );
+      // The tutor's `intervene` command also highlights the field via the room.
+      setHighlight(res.field ?? null);
       return;
     }
     const next = { ...state, status: state.status === "on hold" ? "on hold" : "posted" };
     commit(next);
-    setNotice(`Invoice ${next.invoice_id} saved.`);
-    emitDomEvent({ kind: "save", record: rec(next.invoice_id), field: null, before: null, after: null, state: next });
+    setNotice(`Invoice ${next.invoice_id} saved.${res.unavailable ? " (Rule check unavailable.)" : ""}`);
+    emitFrameHint("save");
   };
 
   const hold = () => change("status", "on hold");
