@@ -13,11 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CostsRouteImport } from './routes/costs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PeopleRouteImport } from './routes/people'
-import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as AgentHostSidRouteImport } from './routes/agent-host.$sid'
 import { Route as CaptureSidRouteImport } from './routes/capture.$sid'
 import { Route as OrgSettingsRouteImport } from './routes/org.settings'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
+import { Route as SessionsIndexRouteImport } from './routes/sessions.index'
+import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
 import { Route as TutorSidRouteImport } from './routes/tutor.$sid'
 import { Route as WorkflowsIndexRouteImport } from './routes/workflows.index'
 import { Route as WorkflowsIdRouteImport } from './routes/workflows.$id'
@@ -44,11 +45,6 @@ const PeopleRoute = PeopleRouteImport.update({
   path: '/people',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SessionsRoute = SessionsRouteImport.update({
-  id: '/sessions',
-  path: '/sessions',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AgentHostSidRoute = AgentHostSidRouteImport.update({
   id: '/agent-host/$sid',
   path: '/agent-host/$sid',
@@ -67,6 +63,16 @@ const OrgSettingsRoute = OrgSettingsRouteImport.update({
 const SandboxErpRoute = SandboxErpRouteImport.update({
   id: '/sandbox/erp',
   path: '/sandbox/erp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsIndexRoute = SessionsIndexRouteImport.update({
+  id: '/sessions/',
+  path: '/sessions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SessionsIdRoute = SessionsIdRouteImport.update({
+  id: '/sessions/$id',
+  path: '/sessions/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TutorSidRoute = TutorSidRouteImport.update({
@@ -100,14 +106,15 @@ export interface FileRoutesByFullPath {
   '/costs': typeof CostsRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
-  '/sessions': typeof SessionsRoute
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/tutor/$sid': typeof TutorSidRoute
   '/workflows/$id': typeof WorkflowsIdRoute
   '/workmaps/$id': typeof WorkmapsIdRoute
+  '/sessions/': typeof SessionsIndexRoute
   '/workflows/': typeof WorkflowsIndexRoute
   '/workmaps/': typeof WorkmapsIndexRoute
 }
@@ -116,14 +123,15 @@ export interface FileRoutesByTo {
   '/costs': typeof CostsRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
-  '/sessions': typeof SessionsRoute
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/tutor/$sid': typeof TutorSidRoute
   '/workflows/$id': typeof WorkflowsIdRoute
   '/workmaps/$id': typeof WorkmapsIdRoute
+  '/sessions': typeof SessionsIndexRoute
   '/workflows': typeof WorkflowsIndexRoute
   '/workmaps': typeof WorkmapsIndexRoute
 }
@@ -133,14 +141,15 @@ export interface FileRoutesById {
   '/costs': typeof CostsRoute
   '/login': typeof LoginRoute
   '/people': typeof PeopleRoute
-  '/sessions': typeof SessionsRoute
   '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/tutor/$sid': typeof TutorSidRoute
   '/workflows/$id': typeof WorkflowsIdRoute
   '/workmaps/$id': typeof WorkmapsIdRoute
+  '/sessions/': typeof SessionsIndexRoute
   '/workflows/': typeof WorkflowsIndexRoute
   '/workmaps/': typeof WorkmapsIndexRoute
 }
@@ -151,14 +160,15 @@ export interface FileRouteTypes {
     | '/costs'
     | '/login'
     | '/people'
-    | '/sessions'
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
+    | '/sessions/$id'
     | '/tutor/$sid'
     | '/workflows/$id'
     | '/workmaps/$id'
+    | '/sessions/'
     | '/workflows/'
     | '/workmaps/'
   fileRoutesByTo: FileRoutesByTo
@@ -167,14 +177,15 @@ export interface FileRouteTypes {
     | '/costs'
     | '/login'
     | '/people'
-    | '/sessions'
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
+    | '/sessions/$id'
     | '/tutor/$sid'
     | '/workflows/$id'
     | '/workmaps/$id'
+    | '/sessions'
     | '/workflows'
     | '/workmaps'
   id:
@@ -183,14 +194,15 @@ export interface FileRouteTypes {
     | '/costs'
     | '/login'
     | '/people'
-    | '/sessions'
     | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
+    | '/sessions/$id'
     | '/tutor/$sid'
     | '/workflows/$id'
     | '/workmaps/$id'
+    | '/sessions/'
     | '/workflows/'
     | '/workmaps/'
   fileRoutesById: FileRoutesById
@@ -200,14 +212,15 @@ export interface RootRouteChildren {
   CostsRoute: typeof CostsRoute
   LoginRoute: typeof LoginRoute
   PeopleRoute: typeof PeopleRoute
-  SessionsRoute: typeof SessionsRoute
   AgentHostSidRoute: typeof AgentHostSidRoute
   CaptureSidRoute: typeof CaptureSidRoute
   OrgSettingsRoute: typeof OrgSettingsRoute
   SandboxErpRoute: typeof SandboxErpRoute
+  SessionsIdRoute: typeof SessionsIdRoute
   TutorSidRoute: typeof TutorSidRoute
   WorkflowsIdRoute: typeof WorkflowsIdRoute
   WorkmapsIdRoute: typeof WorkmapsIdRoute
+  SessionsIndexRoute: typeof SessionsIndexRoute
   WorkflowsIndexRoute: typeof WorkflowsIndexRoute
   WorkmapsIndexRoute: typeof WorkmapsIndexRoute
 }
@@ -242,13 +255,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeopleRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sessions': {
-      id: '/sessions'
-      path: '/sessions'
-      fullPath: '/sessions'
-      preLoaderRoute: typeof SessionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/agent-host/$sid': {
       id: '/agent-host/$sid'
       path: '/agent-host/$sid'
@@ -275,6 +281,20 @@ declare module '@tanstack/react-router' {
       path: '/sandbox/erp'
       fullPath: '/sandbox/erp'
       preLoaderRoute: typeof SandboxErpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions/': {
+      id: '/sessions/'
+      path: '/sessions'
+      fullPath: '/sessions/'
+      preLoaderRoute: typeof SessionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sessions/$id': {
+      id: '/sessions/$id'
+      path: '/sessions/$id'
+      fullPath: '/sessions/$id'
+      preLoaderRoute: typeof SessionsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tutor/$sid': {
@@ -320,14 +340,15 @@ const rootRouteChildren: RootRouteChildren = {
   CostsRoute: CostsRoute,
   LoginRoute: LoginRoute,
   PeopleRoute: PeopleRoute,
-  SessionsRoute: SessionsRoute,
   AgentHostSidRoute: AgentHostSidRoute,
   CaptureSidRoute: CaptureSidRoute,
   OrgSettingsRoute: OrgSettingsRoute,
   SandboxErpRoute: SandboxErpRoute,
+  SessionsIdRoute: SessionsIdRoute,
   TutorSidRoute: TutorSidRoute,
   WorkflowsIdRoute: WorkflowsIdRoute,
   WorkmapsIdRoute: WorkmapsIdRoute,
+  SessionsIndexRoute: SessionsIndexRoute,
   WorkflowsIndexRoute: WorkflowsIndexRoute,
   WorkmapsIndexRoute: WorkmapsIndexRoute,
 }
