@@ -47,6 +47,16 @@ describe("FrameScheduler", () => {
     expect(reasons).toEqual(["tick", "save"]);
   });
 
+  it("lets an extra frame stand in for the next tick", async () => {
+    scheduler.start();
+    await vi.advanceTimersByTimeAsync(700);
+    scheduler.request("save");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(reasons).toEqual(["tick", "save"]);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(reasons).toEqual(["tick", "save", "tick"]);
+  });
+
   it("sends nothing while paused and takes a fresh frame on resume", async () => {
     scheduler.start();
     await vi.advanceTimersByTimeAsync(0);

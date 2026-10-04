@@ -22,6 +22,7 @@ export class FrameScheduler {
   private pendingTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingReason: FrameReason | null = null;
   private lastFrameAt = Number.NEGATIVE_INFINITY;
+  private lastReason: FrameReason | null = null;
   private inFlight = false;
   private running = false;
   private paused = false;
@@ -60,6 +61,15 @@ export class FrameScheduler {
   /** Ask for an extra frame now (e.g. the MiniERP saved or switched records). */
   request(reason: FrameReason) {
     if (!this.running || this.paused) return;
+    // An extra frame stands in for the next tick: perception drops frames < ~500 ms apart.
+    if (
+      reason === "tick" &&
+      this.lastReason !== null &&
+      this.lastReason !== "tick" &&
+      Date.now() - this.lastFrameAt < this.intervalMs
+    ) {
+      return;
+    }
     if (this.pendingReason === null || reason !== "tick") this.pendingReason = reason;
     this.flush();
   }
@@ -94,6 +104,7 @@ export class FrameScheduler {
     this.pendingReason = null;
     this.inFlight = true;
     this.lastFrameAt = Date.now();
+    this.lastReason = reason;
     this.capture(reason)
       .catch(() => {})
       .finally(() => {

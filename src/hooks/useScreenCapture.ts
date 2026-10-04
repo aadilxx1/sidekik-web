@@ -14,6 +14,8 @@ export interface ScreenCaptureOptions {
   paused: boolean;
   /** Session start (epoch ms) that t_ms counts from. Defaults to when sharing starts. */
   tZeroMs?: number | null;
+  /** Full frames URL from POST /v1/sessions (`ingest_url`); defaults to INGEST_URL/ws/frames/:sid. */
+  ingestUrl?: string | null;
 }
 
 export interface ScreenCaptureStats {
@@ -26,7 +28,13 @@ export interface ScreenCaptureStats {
  * DESIGN §4 step 3 / ticket 4: share the screen, send a 1280 px JPEG to perception once a
  * second over `/ws/frames/:sid`, plus extra frames on MiniERP blur, save and record changes.
  */
-export function useScreenCapture({ sid, skToken, paused, tZeroMs }: ScreenCaptureOptions) {
+export function useScreenCapture({
+  sid,
+  skToken,
+  paused,
+  tZeroMs,
+  ingestUrl,
+}: ScreenCaptureOptions) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [stats, setStats] = useState<ScreenCaptureStats>({ sent: 0, dropped: 0, socket: "closed" });
 
@@ -94,7 +102,7 @@ export function useScreenCapture({ sid, skToken, paused, tZeroMs }: ScreenCaptur
     if (!stream || !skToken) return;
     const socket = new ReconnectingSocket({
       url: () =>
-        `${INGEST_URL}/ws/frames/${encodeURIComponent(sid)}?t=${encodeURIComponent(skToken)}`,
+        `${ingestUrl ?? `${INGEST_URL}/ws/frames/${encodeURIComponent(sid)}`}?t=${encodeURIComponent(skToken)}`,
       onStatus: (socketStatus) => setStats((s) => ({ ...s, socket: socketStatus })),
     });
     socketRef.current = socket;
@@ -103,7 +111,7 @@ export function useScreenCapture({ sid, skToken, paused, tZeroMs }: ScreenCaptur
       socket.close();
       if (socketRef.current === socket) socketRef.current = null;
     };
-  }, [sid, skToken, stream]);
+  }, [sid, skToken, stream, ingestUrl]);
 
   useEffect(() => {
     if (paused) schedulerRef.current?.pause();
