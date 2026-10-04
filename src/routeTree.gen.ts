@@ -16,6 +16,7 @@ import { Route as PeopleRouteImport } from './routes/people'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as WorkflowsRouteImport } from './routes/workflows'
 import { Route as WorkmapsRouteImport } from './routes/workmaps'
+import { Route as AgentHostSidRouteImport } from './routes/agent-host.$sid'
 import { Route as CaptureSidRouteImport } from './routes/capture.$sid'
 import { Route as OrgSettingsRouteImport } from './routes/org.settings'
 import { Route as SandboxErpRouteImport } from './routes/sandbox.erp'
@@ -56,6 +57,11 @@ const WorkmapsRoute = WorkmapsRouteImport.update({
   path: '/workmaps',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AgentHostSidRoute = AgentHostSidRouteImport.update({
+  id: '/agent-host/$sid',
+  path: '/agent-host/$sid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CaptureSidRoute = CaptureSidRouteImport.update({
   id: '/capture/$sid',
   path: '/capture/$sid',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/workflows': typeof WorkflowsRoute
   '/workmaps': typeof WorkmapsRoute
+  '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/workflows': typeof WorkflowsRoute
   '/workmaps': typeof WorkmapsRoute
+  '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/workflows': typeof WorkflowsRoute
   '/workmaps': typeof WorkmapsRoute
+  '/agent-host/$sid': typeof AgentHostSidRoute
   '/capture/$sid': typeof CaptureSidRoute
   '/org/settings': typeof OrgSettingsRoute
   '/sandbox/erp': typeof SandboxErpRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/workflows'
     | '/workmaps'
+    | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/workflows'
     | '/workmaps'
+    | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/workflows'
     | '/workmaps'
+    | '/agent-host/$sid'
     | '/capture/$sid'
     | '/org/settings'
     | '/sandbox/erp'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   WorkflowsRoute: typeof WorkflowsRoute
   WorkmapsRoute: typeof WorkmapsRoute
+  AgentHostSidRoute: typeof AgentHostSidRoute
   CaptureSidRoute: typeof CaptureSidRoute
   OrgSettingsRoute: typeof OrgSettingsRoute
   SandboxErpRoute: typeof SandboxErpRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkmapsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/agent-host/$sid': {
+      id: '/agent-host/$sid'
+      path: '/agent-host/$sid'
+      fullPath: '/agent-host/$sid'
+      preLoaderRoute: typeof AgentHostSidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/capture/$sid': {
       id: '/capture/$sid'
       path: '/capture/$sid'
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   WorkflowsRoute: WorkflowsRoute,
   WorkmapsRoute: WorkmapsRoute,
+  AgentHostSidRoute: AgentHostSidRoute,
   CaptureSidRoute: CaptureSidRoute,
   OrgSettingsRoute: OrgSettingsRoute,
   SandboxErpRoute: SandboxErpRoute,
