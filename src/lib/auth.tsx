@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { db } from "@/lib/db";
 
 export type Role = "admin" | "expert" | "learner" | "manager";
 
@@ -22,10 +21,15 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 async function loadMembership(userId: string): Promise<Membership | null> {
-  const { data: m } = await db.from("org_members").select("org_id, role").eq("user_id", userId).limit(1).maybeSingle();
+  const { data: m } = await supabase
+    .from("org_members")
+    .select("org_id, role")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
   if (!m) return null;
-  const { data: org } = await db.from("orgs").select("name").eq("id", m.org_id).maybeSingle();
-  return { orgId: m.org_id as string, role: m.role as Role, orgName: (org?.name as string | undefined) ?? "Organisation" };
+  const { data: org } = await supabase.from("orgs").select("name").eq("id", m.org_id).maybeSingle();
+  return { orgId: m.org_id, role: m.role as Role, orgName: org?.name ?? "Organisation" };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

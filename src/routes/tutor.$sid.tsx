@@ -48,7 +48,7 @@ function TutorRoom() {
     window.open(`/sandbox/erp?sid=${encodeURIComponent(sid)}&mode=tutor`, "sidekik-minierp", "width=1280,height=800");
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <section className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-lg font-semibold">Tutor Room <span className="font-mono text-sm text-muted-foreground">#{sid}</span></h1>
