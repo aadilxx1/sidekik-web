@@ -5,9 +5,8 @@ import { Wordmark } from "@/components/AppShell";
 type AgentHostSearch = { t?: string };
 
 export const Route = createFileRoute("/agent-host/$sid")({
-  validateSearch: (search: Record<string, unknown>): AgentHostSearch => ({
-    t: typeof search.t === "string" ? search.t : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): AgentHostSearch =>
+    typeof search["t"] === "string" ? { t: search["t"] } : {},
   head: () => ({
     meta: [
       { title: "Sidekik agent host" },
